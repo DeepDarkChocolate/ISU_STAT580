@@ -1,0 +1,84 @@
+---
+title: "A short overview"
+author: "Yonghyun Kwon"
+date: "4/24/2020"
+output: pdf_document
+---
+
+# Problem formulation
+
+Let a random variable $X = (X_1, \cdots X_n)$ be hidden class variable in a domain $\{1, \cdots K\}$ and $Y = (Y_1, \cdots Y_n)$ be observable random variable that depends on class variable $X$. When dealing with finite mixture model, we assumed that $(X_i, Y_i)$'s are independent.
+
+\begin{gather*}
+p(y, x) = \prod p(y_i, x_i) \\
+p(y_i \mid x_i = l) = N_{y_{i}}(\mu_l, \Sigma_l)
+\end{gather*}
+
+Now we consider the case when $(X_i, Y_i)$ are no longer independent. That is, 
+
+\begin{gather}
+y \mid X \sim N(\tilde{X}\beta, \Sigma) \label{ref1} \\
+X_i \stackrel{iid}{\sim} Multinomial(p_1, \cdots, p_k)
+\end{gather}
+
+where $\tilde{X}$ is a matrix of indicator functions $I_{ik} = I\left\{ X_i = k\right\}$
+
+$$
+\tilde{X} =
+\begin{pmatrix}
+I_{11} & I_{12} & \cdots & I_{1K} \\
+I_{21} & I_{22} & \cdots & I_{2K}\\
+\vdots & \vdots & \vdots& \vdots \\ 
+I_{n1} & I_{n2} & \cdots & I_{nK}
+\end{pmatrix}
+$$
+
+and $\beta = (\mu_1, \cdots, \mu_k)^T$. 
+
+For illustrative purpose, assume the simplest case when $\Sigma$ is known. So the parameter we estimate is $\theta = (\beta, p_1, \cdots, p_k)$. From \eqref{ref1} the complete likelihood is
+
+\begin{gather*}
+\log f(x, y; \theta) =\log f(y \mid x; \theta) + \log f(x; \theta) \\
+= -\frac{1}{2}\log |\Sigma| - \frac{1}{2}\left(y - \tilde{X}\beta \right) ^ T \Sigma^{-1} \left(y - \tilde{X}\beta \right) + \\ \log p_1\sum_{i = 1}^nI(X_i = 1) + \cdots + \log p_K\sum_{i = 1}^nI(X_i = K)
+\end{gather*}
+
+To find the $Q$ function in E-step, we need the conditional expectation of
+
+\begin{align*}
+E_{\theta^*}[I(X_i = k) \mid Y] &= P_{\theta^*}(X_i = k \mid Y) \\
+&= \sum_{k_1, \cdots k_n}P_{\theta^*}(X_1 = k_1, X_2 = k_2 , \cdots X_i = \ k , \cdots, X_n = k_n \mid Y)
+\end{align*}
+
+and
+
+$$
+E_{\theta^*}[\tilde{X}^T\Sigma^{-1}\tilde{X} \mid Y]
+$$
+
+where
+
+\begin{gather*}
+\left(E_{\theta^*}[\tilde{X}^T\Sigma^{-1}\tilde{X} \mid Y]\right)_{kl} = E_{\theta^*}\left[ \sum_{i, j} I_{ik} \left( \Sigma^{-1}\right)_{ij}I_{jl} \right] \\
+= \sum_{i, j} \left( \Sigma^{-1}\right)_{ij} P_{\theta^*}(X_i = k, X_j = l \mid Y) \\
+= \sum_{i, j} \left( \Sigma^{-1}\right)_{ij} \sum_{k_1, \cdots k_n}P_{\theta^*}(X_1 = k_1, \cdots X_i = \ k, \cdots  ,X_j = l\cdots, X_n = k_n \mid Y)
+\end{gather*}
+
+Since we assumed that $\Sigma$ is known, we only have to update $\beta$ and $p_k$'s in M-step.
+
+$$
+\beta = E_{\theta^*}[\tilde{X}^T\Sigma^{-1}\tilde{X} \mid Y]^{-1}Y^T\Sigma^{-1} E_{\theta^*}[\tilde{X} \mid Y]
+$$
+
+$$
+p_k = \frac{\sum_{i}P_{\theta^*}(X_i = k \mid Y)}{\sum_{i, l}P_{\theta^*}(X_i = l \mid Y)}
+$$
+
+In most cases, $\Sigma$ is not known. 
+
+# Questions
+
+It seems that the computation of MLE is already complex enough even when $\Sigma$ is known. When $\Sigma$ is unconstratined positive definite matrix, one can parametrize $\Theta = \Sigma^{-1}$ and find the mle of $\Theta$ but it still requires a lot of computations. For structured covariance, AR(1) for example, the estimation is even more complex. I, therefore, am thinking of considering the case when observed random variable $y$'s are conditionally independent so that a lot of elements in $\Sigma^{-1}$ are zero or the covariance matrix is blockwise diagonal.(When the covariance matrix is blockwise diagonal, it can be used to apply for the case when we have replications as we discussed in class) This simplification would reduce the parameter space and therefore increase the possibility of global maximum of the likelihood.
+
+Another problem is that we need $K^n$ memory to compute the conditional expectations: $E_{\theta^*}[\tilde{X} \mid Y]$ and $E_{\theta^*}[\tilde{X}^T\Sigma^{-1}\tilde{X} \mid Y]$. One may consider a nice approximation for this to save memory and computation time.
+
+One may choose other distributions for prior $X_i \stackrel{iid}{\sim} Multinomial(p_1, \cdots, p_k)$ if desirable.
